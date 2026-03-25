@@ -1,0 +1,286 @@
+
+
+#  Chocolate Sales Analysis using SQL
+
+This project analyzes a chocolate sales dataset to understand revenue distribution, salesperson performance, product efficiency, and time-based trends using SQL.
+
+
+Table: choco
+Columns:
+salesperson varchar(90) 
+country varchar(45) 
+product varchar(100) 
+date date 
+amount decimal(15,3) 
+boxes int
+---
+
+#  Problem Statements & SQL Queries
+
+##  Basic Level
+
+### 1. Count total number of transactions
+
+```sql
+SELECT COUNT(*) FROM choco;
+```
+
+---
+
+### 2. Clean and standardize revenue column
+
+```sql
+UPDATE choco 
+SET amount = REPLACE(REPLACE(amount, '$', ''), ',', '');
+```
+
+---
+
+### 3. Modify data type of revenue column
+
+```sql
+ALTER TABLE choco 
+MODIFY amount DECIMAL(15,3) NOT NULL;
+```
+
+---
+
+##  Intermediate Level
+
+### 4. Total revenue by country with ranking
+
+```sql
+SELECT country,
+       SUM(amount) AS Total_Revenue,
+       RANK() OVER (ORDER BY SUM(amount) DESC) AS CountryRank
+FROM choco
+GROUP BY country
+ORDER BY Total_Revenue DESC;
+```
+
+---
+
+### 5. Salesperson performance (revenue, orders, rank)
+
+```sql
+SELECT salesperson,
+       SUM(amount) AS Sales,
+       COUNT(*) AS orders,
+       RANK() OVER (ORDER BY SUM(amount) DESC) AS SalesPersonRank
+FROM choco
+GROUP BY salesperson;
+```
+
+---
+
+### 6. Number of sales records per country
+
+```sql
+SELECT country, COUNT(salesperson)
+FROM choco
+GROUP BY country;
+```
+
+---
+
+### 7. Top 5 products by revenue
+
+```sql
+SELECT *
+FROM (
+    SELECT product,
+           SUM(amount) AS revenue,
+           RANK() OVER (ORDER BY SUM(amount) DESC) AS RankProduct
+    FROM choco
+    GROUP BY product
+) t
+WHERE RankProduct <= 5;
+```
+
+---
+
+### 8. Revenue per box (product efficiency)
+
+```sql
+SELECT product,
+       SUM(amount) / SUM(boxes) AS RevPerBox
+FROM choco
+GROUP BY product
+ORDER BY RevPerBox DESC
+LIMIT 5;
+```
+
+---
+
+### 9. Monthly revenue trend
+
+```sql
+SELECT DATE_FORMAT(date, '%Y-%m') AS MonthofYear,
+       SUM(amount) AS MonthlyRev
+FROM choco
+GROUP BY MonthofYear
+ORDER BY MonthofYear ASC;
+```
+
+---
+
+### 10. Revenue contribution (%) by country
+
+```sql
+SELECT country,
+       SUM(amount) AS revenue,
+       ROUND(SUM(amount) / (SELECT SUM(amount) FROM choco) * 100, 3) AS Percentage
+FROM choco
+GROUP BY country
+ORDER BY Percentage DESC;
+```
+
+---
+
+##  Advanced Level
+
+### 11. Month-over-month revenue growth
+
+```sql
+WITH monthly AS (
+    SELECT DATE_FORMAT(date, '%Y-%m') AS MonthofYear,
+           SUM(amount) AS MonthlyRev
+    FROM choco
+    GROUP BY MonthofYear
+)
+SELECT MonthofYear,
+       MonthlyRev,
+       ROUND(
+           (MonthlyRev - LAG(MonthlyRev) OVER (ORDER BY MonthofYear)) /
+           LAG(MonthlyRev) OVER (ORDER BY MonthofYear) * 100, 2
+       ) AS growth
+FROM monthly;
+```
+
+---
+
+### 12. Salesperson performance vs average benchmark
+
+```sql
+SELECT salesperson,
+       SUM(amount) AS rev,
+       ROUND(
+           SUM(amount) - (
+               SELECT AVG(sales)
+               FROM (
+                   SELECT SUM(amount) AS sales
+                   FROM choco
+                   GROUP BY salesperson
+               ) t
+           ), 2
+       ) AS performance,
+       RANK() OVER (
+           ORDER BY performance DESC
+       ) AS rankScored
+FROM choco
+GROUP BY salesperson
+HAVING performance > 0;
+```
+
+---
+
+### 13. Average sales across all salespersons
+
+```sql
+SELECT ROUND(AVG(sales), 2) AS average
+FROM (
+    SELECT salesperson, SUM(amount) AS sales
+    FROM choco
+    GROUP BY salesperson
+) t;
+```
+
+---
+
+### 14. Product premium ranking (revenue per box)
+
+```sql
+SELECT product,
+       ROUND(SUM(amount) / SUM(boxes), 3) AS rev_per_box,
+       RANK() OVER (ORDER BY rev_per_box DESC) AS prem_level
+FROM choco
+GROUP BY product;
+```
+
+---
+
+### 15. Country contribution using CTE
+
+```sql
+WITH ranking AS (
+    SELECT country, SUM(amount) AS rev
+    FROM choco
+    GROUP BY country
+)
+SELECT country,
+       rev,
+       ROUND(rev / (SELECT SUM(amount) FROM choco) * 100, 0) AS percentage
+FROM ranking;
+```
+
+---
+
+### 16. Country ranking by revenue
+
+```sql
+SELECT country,
+       SUM(amount) AS rev,
+       RANK() OVER (ORDER BY SUM(amount) DESC) AS rnk
+FROM choco
+GROUP BY country;
+```
+
+---
+
+### 17. Contribution of top-performing countries
+
+```sql
+WITH ranked AS (
+    SELECT country,
+           SUM(amount) AS revenue,
+           RANK() OVER (ORDER BY SUM(amount) DESC) AS rnk
+    FROM choco
+    GROUP BY country
+)
+SELECT SUM(revenue) AS top_revenue,
+       ROUND(SUM(revenue) / (SELECT SUM(amount) FROM choco) * 100, 2) AS percent_of_total
+FROM ranked
+WHERE rnk <= 6;
+```
+
+---
+
+### 18. Revenue by product and salesperson
+
+```sql
+SELECT product, salesperson, SUM(amount) AS rev
+FROM choco
+GROUP BY product, salesperson
+ORDER BY rev DESC;
+```
+
+---
+
+### 19. Sales efficiency of each salesperson
+
+```sql
+SELECT salesperson,
+       SUM(amount) / SUM(boxes) AS efficiency
+FROM choco
+GROUP BY salesperson
+ORDER BY efficiency DESC;
+```
+
+---
+
+# Final Note
+
+This project helped me understand how SQL can be used for deeper business analysis beyond simple querying. I explored revenue trends, performance benchmarking, and efficiency metrics, which are closer to real-world analytics problems.
+
+---
+
