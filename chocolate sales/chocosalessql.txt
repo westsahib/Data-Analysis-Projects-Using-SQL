@@ -1,5 +1,3 @@
-
-
 #  Chocolate Sales Analysis using SQL
 
 This project analyzes a chocolate sales dataset to understand revenue distribution, salesperson performance, product efficiency, and time-based trends using SQL.
